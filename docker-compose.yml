@@ -1,0 +1,124 @@
+version: "3.9"
+
+services:
+  # 🗄️ PostgreSQL Database
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+      
+    expose:
+      - "5432"  # Expose database for internal services only (not host)
+    networks:
+      - app_net
+
+  # 🚦 Traefik Gateway (used for internal routing)
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"    # Expose HTTP entrypoint
+      - "8088:8080"  # Expose Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - app_net
+
+  # 👥 User Service
+  user-service:
+    build: ./backend/user-service
+    container_name: user-service
+    expose:
+      - "8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_IP=postgres
+      - DB_PORT=5432
+      - DB_DBNAME=user_db
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - PORT=8080
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user.rule=PathPrefix(`/api/user`)"
+      - "traefik.http.services.user.loadbalancer.server.port=8080"
+    networks:
+      - app_net
+
+  # 💡 Device Service
+  device-service:
+    build: ./backend/device-service
+    container_name: device-service
+    expose:
+      - "8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_IP=postgres
+      - DB_PORT=5432
+      - DB_DBNAME=device_db
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - PORT=8081
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.device.rule=PathPrefix(`/api/device`)"
+      - "traefik.http.services.device.loadbalancer.server.port=8081"
+      - "traefik.http.routers.my-device-service.rule=PathPrefix(`/api/my-devices`)"
+      - "traefik.http.services.device.loadbalancer.server.port=8081"
+    networks:
+      - app_net
+
+  # 🔐 Auth Service
+  auth-service:
+    build: ./backend/auth-service
+    container_name: auth-service
+    expose:
+      - "8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_IP=postgres
+      - DB_PORT=5432
+      - DB_DBNAME=auth_db
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - PORT=8083
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)"
+      - "traefik.http.services.auth.loadbalancer.server.port=8083"
+    networks:
+      - app_net
+
+  # 🌐 Frontend
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    expose:
+      - "3000"
+    stdin_open: true
+    tty: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - app_net
+
+# Network Definition
+networks:
+  app_net:
+    driver: bridge  # Single bridge network for all services
+
+volumes:
+  postgres_data:
+    driver: local
