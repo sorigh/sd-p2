@@ -84,14 +84,16 @@ export const unassignDevice = async (deviceId) => {
 
 
 export const getMyDevices = async () => {
-    const response = await fetch(`${HOST.my_device_service}`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${localStorage.getItem("token")}`,
-            'Content-Type': 'application/json',
-        },
-    });
-    if (!response.ok) throw new Error('Failed to fetch devices');
-    return response.json();
+  const response = await fetch(`${HOST.my_device_service}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem("token")}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) throw new Error('Failed to fetch devices');
+  const data = await response.json();
+  console.log("API response:", data);
+  return data;
 };
 

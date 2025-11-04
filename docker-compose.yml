@@ -1,23 +1,52 @@
 version: "3.9"
 
 services:
-  # 🗄️ PostgreSQL Database
-  postgres:
+  # 🗄️ PostgreSQL for User Service
+  postgres-user:
     image: postgres:16
-    container_name: postgres
+    container_name: postgres-user
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
+      POSTGRES_DB: user_db
     volumes:
-      - ./db-init:/docker-entrypoint-initdb.d
-      - postgres_data:/var/lib/postgresql/data
-      
-    expose:
-      - "5432"  # Expose database for internal services only (not host)
+      - postgres_user_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"   # Host port 5433
     networks:
       - app_net
 
-  # 🚦 Traefik Gateway (used for internal routing)
+  # 🗄️ PostgreSQL for Device Service
+  postgres-device:
+    image: postgres:16
+    container_name: postgres-device
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: device_db
+    volumes:
+      - postgres_device_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"  
+    networks:
+      - app_net
+
+  # 🗄️ PostgreSQL for Auth Service
+  postgres-auth:
+    image: postgres:16
+    container_name: postgres-auth
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: auth_db
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"  
+    networks:
+      - app_net
+
+  # 🚦 Traefik Gateway
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -27,8 +56,8 @@ services:
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
     ports:
-      - "80:80"    # Expose HTTP entrypoint
-      - "8088:8080"  # Expose Traefik dashboard
+      - "80:80"
+      - "8088:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -42,7 +71,7 @@ services:
       - "8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - DB_IP=postgres
+      - DB_IP=postgres-user
       - DB_PORT=5432
       - DB_DBNAME=user_db
       - DB_USER=postgres
@@ -63,7 +92,7 @@ services:
       - "8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - DB_IP=postgres
+      - DB_IP=postgres-device
       - DB_PORT=5432
       - DB_DBNAME=device_db
       - DB_USER=postgres
@@ -86,7 +115,7 @@ services:
       - "8083"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - DB_IP=postgres
+      - DB_IP=postgres-auth
       - DB_PORT=5432
       - DB_DBNAME=auth_db
       - DB_USER=postgres
@@ -117,8 +146,13 @@ services:
 # Network Definition
 networks:
   app_net:
-    driver: bridge  # Single bridge network for all services
+    driver: bridge
 
+# Volumes for persistent DB data
 volumes:
-  postgres_data:
+  postgres_user_data:
+    driver: local
+  postgres_device_data:
+    driver: local
+  postgres_auth_data:
     driver: local

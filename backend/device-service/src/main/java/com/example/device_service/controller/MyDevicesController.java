@@ -3,6 +3,8 @@ package com.example.device_service.controller;
 import com.example.device_service.dto.DeviceDTO;
 import com.example.device_service.service.DeviceService;
 import com.example.device_service.handlers.exceptions.ResourceNotFoundException;
+import io.jsonwebtoken.Claims;
+import com.example.device_service.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,15 +16,17 @@ import java.util.List;
 public class MyDevicesController {
 
     private final DeviceService deviceService;
+    private final JwtUtil jwtUtil;
 
-    public MyDevicesController(DeviceService deviceService) {
+    public MyDevicesController(DeviceService deviceService, JwtUtil jwtUtil) {
         this.deviceService = deviceService;
+        this.jwtUtil = jwtUtil;
     }
 
     // Get devices for current user
     @GetMapping
     public ResponseEntity<List<DeviceDTO>> getMyDevices(@RequestHeader("Authorization") String token) {
-        // extract user id from token (JWT)
+        // Extract user ID from JWT token
         Long userId = extractUserIdFromToken(token);
         if (userId == null) {
             throw new ResourceNotFoundException("Invalid token or user not found");
@@ -33,15 +37,25 @@ public class MyDevicesController {
     }
 
     private Long extractUserIdFromToken(String token) {
-        // token is like "Bearer <JWT>"
         if (token != null && token.startsWith("Bearer ")) {
             String jwt = token.substring(7);
             try {
-                String payload = new String(java.util.Base64.getDecoder().decode(jwt.split("\\.")[1]));
-                // Assuming payload has "id" field (adjust according to JWT structure)
-                com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
-                return node.get("sub").asLong();
+                // Use JwtUtil to validate and extract claims
+                Claims claims = jwtUtil.validateToken(jwt);
+                
+                // Get userId from claims (not from "sub" which is username)
+                Object userIdObj = claims.get("userId");
+                
+                if (userIdObj instanceof Integer) {
+                    return ((Integer) userIdObj).longValue();
+                } else if (userIdObj instanceof Long) {
+                    return (Long) userIdObj;
+                } else {
+                    System.err.println("userId claim is not a number: " + userIdObj);
+                    return null;
+                }
             } catch (Exception e) {
+                System.err.println("Failed to extract userId from token: " + e.getMessage());
                 e.printStackTrace();
                 return null;
             }
