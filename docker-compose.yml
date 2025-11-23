@@ -46,6 +46,21 @@ services:
     networks:
       - app_net
 
+  # 🗄️ PostgreSQL for Monitoring Service
+  postgres-monitoring:
+    image: postgres:16
+    container_name: postgres-monitoring
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: monitoring_db
+    volumes:
+      - postgres_monitoring_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"  
+    networks:
+      - app_net
+
   # 🚦 Traefik Gateway
   traefik:
     image: traefik:v3.0
@@ -128,6 +143,57 @@ services:
     networks:
       - app_net
 
+  # 📊 Monitoring Service:
+  monitoring-service:
+    build: ./backend/monitoring-service
+    container_name: monitoring-service
+    expose:
+      - "8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_IP=postgres-monitoring
+      - DB_PORT=5432
+      - DB_DBNAME=monitoring_db
+      - DB_USER=postgres
+      - DB_PASSWORD=root
+      - PORT=8082
+      # RabbitMQ Config (Used internally by the service)
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+    labels:
+      - "traefik.enable=false"
+    depends_on:
+      - postgres-monitoring
+      - rabbitmq
+    networks:
+      - app_net
+
+  # 🐇 RabbitMQ Message Broker (New)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine 
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # Standard AMQP port 
+      - "15672:15672" # Management dashboard (http://localhost:15672)
+    networks:
+      - app_net
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest 
+
+  device-simulator:
+    build: ./device-simulator
+    container_name: device-simulator
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - DEVICE_ID=1 # Set the Device ID this simulator will use
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - rabbitmq
+    networks:
+      - app_net
   # 🌐 Frontend
   frontend:
     build: ./frontend
@@ -155,4 +221,6 @@ volumes:
   postgres_device_data:
     driver: local
   postgres_auth_data:
+    driver: local
+  postgres_monitoring_data:
     driver: local
