@@ -22,10 +22,7 @@ public class Device {
 
     @Column(name = "location", nullable = false)
     private String location;
-
-    // owner user id (map device to user)
-    private Long ownerId;
-
+    
     @Column(name = "maximum_hourly_energy_consumption")
     private Double maximumHourlyEnergyConsumption;
 

@@ -9,15 +9,16 @@ public class DeviceBuilder {
     public static DeviceDTO toDeviceDTO(Device device) {
         if (device == null)
             return null;
+        // ownerId este setat la null; add in service layer if needed
         return new DeviceDTO(device.getId(), device.getName(), device.getType(),
-                device.getLocation(), device.getOwnerId(), device.getMaximumHourlyEnergyConsumption());
+                device.getLocation(), null, device.getMaximumHourlyEnergyConsumption());
     }
 
     public static DeviceDetailsDTO toDeviceDetailsDTO(Device device) {
         if (device == null)
             return null;
         return new DeviceDetailsDTO(device.getId(), device.getName(), device.getType(),
-                device.getLocation(), device.getOwnerId(), device.getMaximumHourlyEnergyConsumption());
+                device.getLocation(), null, device.getMaximumHourlyEnergyConsumption());
     }
 
     public static Device fromDetailsDTO(DeviceDetailsDTO dto) {
@@ -30,7 +31,6 @@ public class DeviceBuilder {
         device.setType(dto.getType());
         device.setMaximumHourlyEnergyConsumption(dto.getMaximumHourlyEnergyConsumption());
         device.setLocation(dto.getLocation());
-        device.setOwnerId(dto.getOwnerId());
         return device;
     }
 }
