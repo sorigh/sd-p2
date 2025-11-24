@@ -24,13 +24,14 @@ public class UserSyncPublisher {
     }
 
     public void publishUserCreated(User user) {
-        UserSyncDTO dto = new UserSyncDTO(user.getId(), user.getUsername());
+        String roleString = user.getRole().name();
+        UserSyncDTO dto = new UserSyncDTO(user.getId(), user.getUsername(), roleString);
         rabbitTemplate.convertAndSend(SYNC_EXCHANGE, USER_CREATED_KEY, dto);
         LOGGER.info("Published User CREATED event for userId: {}", user.getId());
     }
 
     public void publishUserDeleted(Long userId) {
-        UserSyncDTO dto = new UserSyncDTO(userId, null);
+        UserSyncDTO dto = new UserSyncDTO(userId, null, null);
         rabbitTemplate.convertAndSend(SYNC_EXCHANGE, USER_DELETED_KEY, dto);
         LOGGER.info("Published User DELETED event for userId: {}", userId);
     }

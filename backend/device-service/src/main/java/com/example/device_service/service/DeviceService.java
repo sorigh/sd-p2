@@ -6,6 +6,7 @@ import com.example.device_service.dto.builders.DeviceBuilder;
 import com.example.device_service.entity.Device;
 import com.example.device_service.entity.DeviceOwnership;
 import com.example.device_service.handlers.exceptions.ResourceNotFoundException;
+import com.example.device_service.messaging.DeviceSyncPublisher;
 import com.example.device_service.repository.DeviceOwnershipRepository;
 import com.example.device_service.repository.DeviceRepository;
 import jakarta.transaction.Transactional;
@@ -22,10 +23,12 @@ public class DeviceService {
 
     private final DeviceRepository repository;
     private final DeviceOwnershipRepository ownershipRepository; 
+    private final DeviceSyncPublisher deviceSyncPublisher;
 
-    public DeviceService(DeviceRepository repository, DeviceOwnershipRepository ownershipRepository) {
+    public DeviceService(DeviceRepository repository, DeviceOwnershipRepository ownershipRepository, DeviceSyncPublisher deviceSyncPublisher) {
         this.repository = repository;
         this.ownershipRepository = ownershipRepository;
+        this.deviceSyncPublisher = deviceSyncPublisher;
     }
 
     private DeviceDTO addOwnerIdToDeviceDTO(Device device) {
@@ -67,6 +70,7 @@ public class DeviceService {
             ownershipRepository.save(ownership);
         }
         
+        deviceSyncPublisher.publishDeviceCreated(saved);
         return saved.getId();
     }
 

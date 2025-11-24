@@ -1,4 +1,4 @@
-package com.example.user_service.messaging.dto;
+package com.example.monitoring_service.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

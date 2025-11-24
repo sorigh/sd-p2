@@ -129,6 +129,9 @@ services:
       - "traefik.http.services.device.loadbalancer.server.port=8081"
     networks:
       - app_net
+    depends_on: 
+      - postgres-device
+      - rabbitmq
 
   # 🔐 Auth Service
   auth-service:
