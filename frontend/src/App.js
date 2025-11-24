@@ -10,6 +10,7 @@ import LinkUserDevicesPage from "./user/components/link-user-devices-page";
 import UserDevicesViewPage from "./user/components/user-devices-view-page";
 import MyDevicesPage from "./device/components/my-devices-page";
 import "bootstrap/dist/css/bootstrap.min.css";
+import DeviceConsumptionPage from "./device/components/device-consumption-page";
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useContext(AuthContext);
@@ -56,7 +57,15 @@ function App() {
         <Route path="/users/:username/view-devices" element={<UserDevicesViewPage />} />
 
         <Route path="/my-devices" element={<MyDevicesPage />} />
-
+        <Route 
+          path="/my-devices/:deviceId/consumption" 
+          element={
+            <ProtectedRoute requiredRole="ROLE_USER">
+              <DeviceConsumptionPage />
+            </ProtectedRoute>
+          } 
+        />
+        
 
       </Routes>
     </Router>

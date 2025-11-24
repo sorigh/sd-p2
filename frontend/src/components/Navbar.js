@@ -12,8 +12,8 @@ const AppNavbar = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
-    setUser(null); 
-    navigate("/login");
+    setUser(null);
+    navigate("/");
   };
 
   if (!user) return null;

@@ -97,3 +97,34 @@ export const getMyDevices = async () => {
   return data;
 };
 
+
+export const getDeviceConsumption = async (deviceId, dateString) => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No auth token found. Please log in.");
+    
+    // 1. Folosim noul endpoint API Gateway: /api/monitoring
+    // 2. Adăugăm calea /consumption/hourly/ (așa cum e definită în controller)
+    const url = `${HOST.monitoring_api}/consumption/hourly/${deviceId}?date=${dateString}`;
+    
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            // Tokenul e trimis corect
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+    });
+
+    if (response.status === 204) {
+        return []; // Returnează array gol pentru No Content
+    }
+
+    if (!response.ok) {
+        // Tratează erorile 401/403/500
+        const errorBody = await response.text();
+        throw new Error(`Failed to fetch consumption data: ${response.status} ${response.statusText}. Details: ${errorBody}`);
+    }
+
+    return response.json();
+};
+
