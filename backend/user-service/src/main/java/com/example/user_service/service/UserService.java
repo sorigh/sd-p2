@@ -6,6 +6,7 @@ import com.example.user_service.dto.builders.UserBuilder;
 import com.example.user_service.entity.User;
 import com.example.user_service.entity.UserRole;
 import com.example.user_service.handlers.exceptions.model.ResourceNotFoundException;
+import com.example.user_service.messaging.UserSyncPublisher;
 import com.example.user_service.repository.UserRepository;
 
 import org.slf4j.Logger;
@@ -23,11 +24,13 @@ public class UserService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final UserSyncPublisher userSyncPublisher;
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserSyncPublisher userSyncPublisher) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userSyncPublisher = userSyncPublisher;
     }
 
     public List<UserDTO> findUsers() {
@@ -55,7 +58,7 @@ public class UserService {
     User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
     return user.getId();
-}
+    }
 
     public Long insert(UserDetailsDTO userDTO) {
         User user = UserBuilder.toEntity(userDTO);
@@ -73,6 +76,10 @@ public class UserService {
 
         user = userRepository.save(user);
         LOGGER.debug("User with id {} was inserted into DB", user.getId());
+        
+        // PUBLISH: create user event
+        userSyncPublisher.publishUserCreated(user);
+        
         return user.getId();
     }
 
@@ -123,6 +130,7 @@ public class UserService {
             throw new IllegalArgumentException("Cannot delete admin users");
         }
         userRepository.delete(user);
+        userSyncPublisher.publishUserDeleted(id);
         LOGGER.debug("User with id {} was deleted", id);
     }
 }
