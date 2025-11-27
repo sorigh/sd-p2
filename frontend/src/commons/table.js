@@ -100,7 +100,7 @@ class Table extends Component {
               {columns.map((col, idx) => (
                 <th key={idx}>{col.Header}</th>
               ))}
-              {(onView || onEdit || onDelete) && <th>Actions</th>}
+              {(onView || onEdit || onDelete || extraActions) && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -109,7 +109,7 @@ class Table extends Component {
                 {columns.map((col, colIdx) => (
                   <td key={colIdx}>{row[col.accessor]}</td>
                 ))}
-                {(onView || onEdit || onDelete) && (
+                {(onView || onEdit || onDelete || extraActions) && (
                   <td>
                     {onView && <Button size="sm" variant="info" onClick={() => onView(row)}>View</Button>}{' '}
                     {onEdit && <Button size="sm" variant="warning" onClick={() => onEdit(row)}>Edit</Button>}{' '}

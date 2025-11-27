@@ -98,18 +98,18 @@ export const getMyDevices = async () => {
 };
 
 
+// frontend/src/device/api/device-api.js
+// ...
 export const getDeviceConsumption = async (deviceId, dateString) => {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No auth token found. Please log in.");
     
-    // 1. Folosim noul endpoint API Gateway: /api/monitoring
-    // 2. Adăugăm calea /consumption/hourly/ (așa cum e definită în controller)
-    const url = `${HOST.monitoring_api}/consumption/hourly/${deviceId}?date=${dateString}`;
+    // URL-ul tău corect: /api/monitoring/consumption/{deviceId}?date={dateString}
+    const url = `${HOST.monitoring_service}/consumption/${deviceId}?date=${dateString}`;
     
     const response = await fetch(url, {
         method: 'GET',
         headers: {
-            // Tokenul e trimis corect
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
         },
@@ -125,6 +125,25 @@ export const getDeviceConsumption = async (deviceId, dateString) => {
         throw new Error(`Failed to fetch consumption data: ${response.status} ${response.statusText}. Details: ${errorBody}`);
     }
 
-    return response.json();
+    // --- FIX PENTRU EROAREA 'Unexpected token <' ---
+    // Citim corpul ca text pentru a preveni crash-ul la parsare.
+    const responseText = await response.text();
+    
+    // Verifică dacă răspunsul este HTML (începe cu <)
+    if (responseText.trim().startsWith('<')) {
+        console.warn("Received unexpected HTML response (200 OK) instead of JSON. Assuming No Data.");
+        // Returnează un array gol pentru a nu crăpa interfața.
+        return [];
+    }
+
+    try {
+        // Dacă nu este HTML, încearcă să-l parsezi ca JSON
+        return JSON.parse(responseText);
+    } catch (e) {
+        console.error("Failed to parse JSON response, but it was not HTML. Body:", responseText.substring(0, 100));
+        throw new Error("Failed to parse JSON response from server.");
+    }
 };
+
+
 

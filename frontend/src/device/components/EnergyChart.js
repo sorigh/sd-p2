@@ -18,15 +18,15 @@ const EnergyChart = ({ data, deviceName, selectedDate }) => {
     return <p className="text-center mt-4 text-warning">No consumption data available for {deviceName} on {selectedDate}</p>;
   }
 
-  // Mapează datele preluate în formatul Chart.js
+  // AICI ESTE CORECȚIA: mapăm DTO-ul Java (timestamp, consumptionKwh) la formatul Chart.js
   const chartData = {
-    // Folosim ora (item.hour) pentru etichetele X. Convertim ora 0, 1, ... în șir de caractere.
-    labels: data.map(item => `${item.hour}:00`),
+    // Folosim item.timestamp (format HH:00) pentru etichetele X
+    labels: data.map(item => item.timestamp),
     datasets: [
       {
         label: 'Energy Consumption (kWh)',
-        // Folosim consumul agregat (item.consumption)
-        data: data.map(item => item.consumption),
+        // Folosim item.consumptionKwh pentru valoarea Y
+        data: data.map(item => item.consumptionKwh),
         backgroundColor: 'rgba(52, 152, 219, 0.8)',
         borderColor: 'rgba(52, 152, 219, 1)',
         borderWidth: 1,

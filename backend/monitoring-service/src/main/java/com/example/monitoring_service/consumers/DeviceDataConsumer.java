@@ -63,18 +63,31 @@ public class DeviceDataConsumer {
     
     // Saves the final hourly total to the database
     private void saveHourlyConsumption(String hourKey, Double totalConsumption, LocalDateTime timeOfLastReading) {
-        // Find the start of the next hour (the reporting timestamp)
-        LocalDateTime endOfHour = timeOfLastReading.toLocalDate().atTime(timeOfLastReading.getHour(), 0).plusHours(1);
+        // Tentativă de a șterge intrarea DOAR dacă valoarea curentă din hartă se potrivește cu totalConsumption.
+        // Acest lucru previne dublarea dacă un alt thread a adăugat deja o valoare nouă.
+        // Totuși, aici vrem să ne asigurăm că totalul este șters o singură dată.
+        
+        // Folosim remove(key, value) atomic pentru a ne asigura că ștergem intrarea doar dacă
+        // valoarea este exact cea pe care tocmai am calculat-o, prevenind scrierea dublă.
 
-        EnergyConsumption hourlyEntry = new EnergyConsumption();
-        hourlyEntry.setDeviceId(Long.parseLong(hourKey.split("_")[0]));
-        hourlyEntry.setTimestamp(endOfHour);
-        hourlyEntry.setConsumptionKwh(totalConsumption);
+        boolean wasRemoved = hourlyAccumulator.remove(hourKey, totalConsumption);
 
-        repository.save(hourlyEntry);
-        LOGGER.info("✅ SAVED HOURLY AGGREGATION for Device {} ({} kWh)", hourlyEntry.getDeviceId(), totalConsumption);
+        if (wasRemoved) {
+            // Doar dacă a fost șters cu succes, salvăm în baza de date.
+            
+            // Find the start of the next hour (the reporting timestamp)
+            LocalDateTime endOfHour = timeOfLastReading.toLocalDate().atTime(timeOfLastReading.getHour(), 0).plusHours(1);
 
-        // Clear the entry from the in-memory map after successful saving
-        hourlyAccumulator.remove(hourKey); 
+            EnergyConsumption hourlyEntry = new EnergyConsumption();
+            hourlyEntry.setDeviceId(Long.parseLong(hourKey.split("_")[0]));
+            hourlyEntry.setTimestamp(endOfHour);
+            hourlyEntry.setConsumptionKwh(totalConsumption);
+
+            repository.save(hourlyEntry);
+            LOGGER.info("✅ SAVED HOURLY AGGREGATION for Device {} ({} kWh)", hourlyEntry.getDeviceId(), totalConsumption);
+        } else {
+             // Această ramură ar putea însemna că datele au fost deja șterse sau modificate (un alt thread a preluat controlul).
+             LOGGER.warn("Skipping save for {} ({} kWh). Accumulator value mismatch or entry already removed.", hourKey, totalConsumption);
+        }
     }
 }

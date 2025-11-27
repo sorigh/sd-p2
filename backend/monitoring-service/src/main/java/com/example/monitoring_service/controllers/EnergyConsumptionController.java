@@ -1,4 +1,4 @@
-package com.example.monitoring_service.controller;
+package com.example.monitoring_service.controllers;
 
 import com.example.monitoring_service.dtos.EnergyConsumptionDTO;
 import com.example.monitoring_service.service.EnergyConsumptionService;
